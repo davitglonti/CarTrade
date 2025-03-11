@@ -11,6 +11,3 @@ databaseChangeLog:
       file: db/changelog/scripts/06-ADD-USER-CAR-TABLE.sql
   - include:
       file: db/changelog/scripts/07-ADD-BALANCE-IN-CENTES.sql
-
-  #- include:
-  #    file: db/changelog/scripts/02-CREATE-MUSICAL-AND-COMPOSER-TABLES.sql

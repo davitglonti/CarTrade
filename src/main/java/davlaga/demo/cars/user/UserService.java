@@ -80,6 +80,8 @@ public class UserService {
         user.setBalanceInCents(balanceInCents);
         appUserRepository.save(user);
     }
+
+
 }
 
 

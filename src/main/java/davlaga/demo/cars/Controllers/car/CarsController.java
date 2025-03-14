@@ -1,5 +1,9 @@
 package davlaga.demo.cars.Controllers.car;
+import davlaga.demo.cars.error.NotFoundException;
+import davlaga.demo.cars.user.persistence.AdminAccount;
+import davlaga.demo.cars.user.persistence.AdminAccountRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 
 import davlaga.demo.cars.Services.car.CarsService;
@@ -24,7 +28,7 @@ import static davlaga.demo.cars.security.AuthorizationConstants.USER_OR_ADMIN;
 public class CarsController {
 
     private final CarsService carsService;
-
+    private final AdminAccountRepository adminAccountRepository;
     @PostMapping
     @PreAuthorize(ADMIN)
     void addCar(@RequestBody @Valid CarRequest request) {
@@ -81,6 +85,15 @@ public class CarsController {
             throw new RuntimeException("Failed to upload photo", e);
         }
     }
+
+    @GetMapping("/admin/balance")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+    public ResponseEntity<Long> getAdminBalance() {
+        AdminAccount adminAccount = adminAccountRepository.findById(1L)
+                .orElseThrow(() -> new NotFoundException("Admin account not found"));
+        return ResponseEntity.ok(adminAccount.getBalanceInCents());
+    }
+
 
 
 }

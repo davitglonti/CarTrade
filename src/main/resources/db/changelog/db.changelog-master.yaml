@@ -11,3 +11,7 @@ databaseChangeLog:
       file: db/changelog/scripts/06-ADD-USER-CAR-TABLE.sql
   - include:
       file: db/changelog/scripts/07-ADD-BALANCE-IN-CENTES.sql
+  - include:
+      file: db/changelog/scripts/08-CREATE-ADMIN-ACCOUNT.sql
+  - include:
+      file: db/changelog/scripts/09-CREATE-TAX-ACCOUNT.sql

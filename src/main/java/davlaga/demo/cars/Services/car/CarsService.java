@@ -2,6 +2,8 @@ package davlaga.demo.cars.Services.car;
 
 import davlaga.demo.cars.Services.engine.EngineService;
 import davlaga.demo.cars.model.UserUpdateRequest;
+import davlaga.demo.cars.persistence.entities.TaxAccount;
+import davlaga.demo.cars.persistence.repositories.TaxAccountRepository;
 import davlaga.demo.cars.user.UserService;
 import davlaga.demo.cars.error.NotFoundException;
 import davlaga.demo.cars.model.CarDTO;
@@ -9,6 +11,8 @@ import davlaga.demo.cars.model.CarRequest;
 import davlaga.demo.cars.model.EngineDTO;
 import davlaga.demo.cars.persistence.entities.Car;
 import davlaga.demo.cars.persistence.repositories.CarRepository;
+import davlaga.demo.cars.user.persistence.AdminAccount;
+import davlaga.demo.cars.user.persistence.AdminAccountRepository;
 import davlaga.demo.cars.user.persistence.AppUser;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +31,8 @@ public class CarsService {
     private final CarRepository carRepository;
     private final EngineService engineService;
     private final UserService userService;
-
+    private final AdminAccountRepository adminAccountRepository;
+    private final TaxAccountRepository taxAccountRepository;
     public Page<CarDTO> getCars(int page, int pageSize) {
         return carRepository.findAll(PageRequest.of(page, pageSize))
                 .map(this::mapCar);
@@ -96,13 +101,30 @@ public class CarsService {
             throw new IllegalStateException("User does not own this car");
         }
 
-        long sellPrice = (long) (car.getPriceInCents() * 0.8);
-        user.setBalanceInCents(user.getBalanceInCents() + sellPrice);
+        long salePriceInCents= car.getPriceInCents();
+        long sellerShare = (long) (salePriceInCents * 0.80);
+        long remainingAmount = salePriceInCents - sellerShare;
+        long taxAmount= (long) (remainingAmount*0.20);
+        long adminAmount = remainingAmount - taxAmount; // 20%-ის 80% (მთლიანი 16%)
+
+        user.setBalanceInCents(user.getBalanceInCents() + sellerShare);
         user.getOwnedCars().remove(car);
         car.getOwners().remove(user);
-
         car.setDriveable(true);
-        carRepository.save(car);
+
+        // ადმინის ანგარიშის განახლება
+        AdminAccount adminAccount = adminAccountRepository.findById(1L)
+                .orElseThrow(() -> new NotFoundException("Admin account not found"));
+        adminAccount.setBalanceInCents(adminAccount.getBalanceInCents()+adminAmount);
+
+        TaxAccount taxAccount = taxAccountRepository.findById(1L)
+                .orElseThrow(() -> new NotFoundException("Tax account not found"));
+        taxAccount.setBalanceInCents(taxAccount.getBalanceInCents() + taxAmount);
+
+        carRepository.save(car);    // Car-ის შენახვა
+        adminAccountRepository.save(adminAccount); // AdminAccount-ის შენახვა
+        taxAccountRepository.save(taxAccount);
+
     }
 
     public Page<CarDTO> getOwnedCars(String username, int page, int pageSize) {

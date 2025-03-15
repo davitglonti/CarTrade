@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import davlaga.demo.cars.S3Service;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.stream.Collectors;
 
 @Service
@@ -84,6 +85,13 @@ public class CarsService {
             throw new IllegalStateException("Insufficient balance to buy car");
         }
 
+        if (car.getReservedBy() != null && !car.getReservedBy().getUsername().equals(username)) {
+            throw new IllegalStateException("Car is reserved by another user");
+        }
+        if (car.getReservedUntil() != null && car.getReservedUntil().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("Car is reserved until " + car.getReservedUntil());
+        }
+
         user.setBalanceInCents(user.getBalanceInCents() - car.getPriceInCents());
         user.getOwnedCars().add(car);
         car.getOwners().add(user);
@@ -105,14 +113,18 @@ public class CarsService {
         long sellerShare = (long) (salePriceInCents * 0.80);
         long remainingAmount = salePriceInCents - sellerShare;
         long taxAmount= (long) (remainingAmount*0.20);
-        long adminAmount = remainingAmount - taxAmount; // 20%-ის 80% (მთლიანი 16%)
+        long adminAmount = remainingAmount - taxAmount;
 
         user.setBalanceInCents(user.getBalanceInCents() + sellerShare);
         user.getOwnedCars().remove(car);
         car.getOwners().remove(user);
         car.setDriveable(true);
 
-        // ადმინის ანგარიშის განახლება
+        if (car.getReservedBy() != null && !car.getReservedBy().getUsername().equals(username)) {
+            throw new IllegalStateException("Car is reserved by another user");
+        }
+
+        // Admin account update
         AdminAccount adminAccount = adminAccountRepository.findById(1L)
                 .orElseThrow(() -> new NotFoundException("Admin account not found"));
         adminAccount.setBalanceInCents(adminAccount.getBalanceInCents()+adminAmount);
@@ -121,8 +133,8 @@ public class CarsService {
                 .orElseThrow(() -> new NotFoundException("Tax account not found"));
         taxAccount.setBalanceInCents(taxAccount.getBalanceInCents() + taxAmount);
 
-        carRepository.save(car);    // Car-ის შენახვა
-        adminAccountRepository.save(adminAccount); // AdminAccount-ის შენახვა
+        carRepository.save(car);
+        adminAccountRepository.save(adminAccount);
         taxAccountRepository.save(taxAccount);
 
     }
@@ -130,6 +142,28 @@ public class CarsService {
     public Page<CarDTO> getOwnedCars(String username, int page, int pageSize) {
         return carRepository.findByOwnerUsername(username, PageRequest.of(page, pageSize))
                 .map(this::mapCar);
+    }
+
+    @Transactional
+    public void reserveCar(String username, Long carId) {
+        AppUser user = userService.getUser(username);
+        Car car = carRepository.findById(carId)
+                .orElseThrow(() -> new NotFoundException("Car with id " + carId + " not found"));
+
+        if (!car.isDrivable()) {
+            throw new IllegalStateException("Car isnt available for reservation");
+        }
+
+        if (car.getReservedUntil() != null && car.getReservedUntil().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("Car is already reserved until " + car.getReservedUntil());
+        }
+
+        car.setDriveable(false);
+        car.setReservedBy(user);
+        car.setReservedUntil(LocalDateTime.now().plusHours(1)); // დაჯავშნა 24 საათით
+
+        carRepository.save(car);
+
     }
 
     public CarDTO mapCar(Car car) {

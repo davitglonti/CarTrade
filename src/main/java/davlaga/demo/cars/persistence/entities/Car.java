@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -40,17 +41,16 @@ public class Car {
         return driveable;
     }
 
-
     @Column(name = "photo_url")
     private String photoUrl;
 
-    public String getPhotoUrl() {
-        return photoUrl;
-    }
+    @Column(name = "reserved_until")
+    private LocalDateTime reservedUntil;
 
-    public void setPhotoUrl(String photoUrl) {
-        this.photoUrl = photoUrl;
-    }
+    @ManyToOne
+    @JoinColumn(name = "reserved_by")
+    private AppUser reservedBy;
+
 
 }
 

@@ -1,7 +1,9 @@
 package davlaga.demo.cars.Controllers.car;
 import davlaga.demo.cars.error.NotFoundException;
+import davlaga.demo.cars.user.UserService;
 import davlaga.demo.cars.user.persistence.AdminAccount;
 import davlaga.demo.cars.user.persistence.AdminAccountRepository;
+import davlaga.demo.cars.user.persistence.AppUser;
 import jakarta.transaction.Transactional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -9,11 +11,15 @@ import org.springframework.security.core.Authentication;
 import davlaga.demo.cars.Services.car.CarsService;
 import davlaga.demo.cars.model.CarDTO;
 import davlaga.demo.cars.model.CarRequest;
+import davlaga.demo.cars.user.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -94,6 +100,13 @@ public class CarsController {
         return ResponseEntity.ok(adminAccount.getBalanceInCents());
     }
 
-
+    @PostMapping("/{carId}/reserve")
+    //@PreAuthorize("hasAuthority('ROLE_USER')")
+    public ResponseEntity<String> reserveCar(
+            @PathVariable Long carId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        carsService.reserveCar(userDetails.getUsername(), carId);
+        return ResponseEntity.ok("Car reserved successfully");
+    }
 
 }

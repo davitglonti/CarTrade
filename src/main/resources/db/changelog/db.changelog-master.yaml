@@ -15,3 +15,5 @@ databaseChangeLog:
       file: db/changelog/scripts/08-CREATE-ADMIN-ACCOUNT.sql
   - include:
       file: db/changelog/scripts/09-CREATE-TAX-ACCOUNT.sql
+  - include:
+      file: db/changelog/scripts/10-ADD-RESERVATION-TO-CAR.sql
